@@ -1,20 +1,23 @@
 """
 SMAHI GROUP - Professional Farm Management System
-Productly Design Style
+Productly Design Style - Supabase Version
 """
 
 import streamlit as st
 import pandas as pd
-import sqlite3
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from fpdf import FPDF
 import hashlib
-import os
+from supabase import create_client, Client
 
 st.set_page_config(page_title="SMAHI GROUP", layout="wide", page_icon="🌾", initial_sidebar_state="expanded")
 
-DB_NAME = "smahi_ultimate.db"
+# Supabase Configuration
+SUPABASE_URL = "https://wpnfvewscggrkguaofno.supabase.co"
+SUPABASE_KEY = "sb_publishable_cETUxgJW9dxXzNpt8lZJJA_g-AsmvxP"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 PASSWORD_HASH = hashlib.sha256("admin123".encode()).hexdigest()
 
 COMPANY = {
@@ -207,34 +210,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Database Setup
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL,
-        category TEXT NOT NULL, partner_name TEXT, product TEXT NOT NULL,
-        quantity REAL DEFAULT 0, unit TEXT DEFAULT 'kg', fuel_liters REAL DEFAULT 0,
-        fuel_station TEXT, price_unit REAL NOT NULL, total_price REAL NOT NULL,
-        amount_paid REAL DEFAULT 0, amount_remaining REAL DEFAULT 0, notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS plantations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, date_planted TEXT NOT NULL,
-        crop_name TEXT NOT NULL, hectares REAL NOT NULL, plot_name TEXT NOT NULL,
-        status TEXT DEFAULT 'En cours', expected_harvest TEXT, notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS expenses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL,
-        category TEXT NOT NULL, description TEXT, amount REAL NOT NULL,
-        payment_method TEXT, notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
 def format_currency(amount):
     return f"{amount:,.0f}"
 
@@ -243,93 +218,141 @@ def calculate_percentage_change(current, previous):
         return 0
     return ((current - previous) / previous) * 100
 
-# Database Manager
+# Database Manager with Supabase
 class DB:
     @staticmethod
     def get_transactions():
-        conn = sqlite3.connect(DB_NAME)
-        df = pd.read_sql_query("SELECT * FROM transactions ORDER BY date DESC", conn)
-        conn.close()
-        return df
+        try:
+            response = supabase.table('transactions').select('*').order('date', desc=True).execute()
+            if response.data:
+                return pd.DataFrame(response.data)
+            return pd.DataFrame()
+        except Exception as e:
+            st.error(f"Error fetching transactions: {e}")
+            return pd.DataFrame()
     
     @staticmethod
     def add_transaction(data):
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        c.execute('''INSERT INTO transactions (date, type, category, partner_name, product, quantity, unit, 
-            fuel_liters, fuel_station, price_unit, total_price, amount_paid, amount_remaining, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (dt, data['type'], data['category'], data['partner'], data['product'], data['quantity'],
-             data['unit'], data['fuel_liters'], data['fuel_station'], data['price'], data['total'],
-             data['paid'], data['remaining'], data['notes']))
-        conn.commit()
-        conn.close()
+        try:
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            transaction_data = {
+                'date': dt,
+                'type': data['type'],
+                'category': data['category'],
+                'partner_name': data['partner'],
+                'product': data['product'],
+                'quantity': data['quantity'],
+                'unit': data['unit'],
+                'fuel_liters': data['fuel_liters'],
+                'fuel_station': data['fuel_station'],
+                'price_unit': data['price'],
+                'total_price': data['total'],
+                'amount_paid': data['paid'],
+                'amount_remaining': data['remaining'],
+                'notes': data['notes']
+            }
+            supabase.table('transactions').insert(transaction_data).execute()
+        except Exception as e:
+            st.error(f"Error adding transaction: {e}")
     
     @staticmethod
     def get_plantations():
-        conn = sqlite3.connect(DB_NAME)
-        df = pd.read_sql_query("SELECT * FROM plantations ORDER BY date_planted DESC", conn)
-        conn.close()
-        return df
+        try:
+            response = supabase.table('plantations').select('*').order('date_planted', desc=True).execute()
+            if response.data:
+                return pd.DataFrame(response.data)
+            return pd.DataFrame()
+        except Exception as e:
+            st.error(f"Error fetching plantations: {e}")
+            return pd.DataFrame()
     
     @staticmethod
     def add_plantation(crop, hectares, plot, expected_harvest=None, notes=None):
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        dt = datetime.now().strftime("%Y-%m-%d")
-        c.execute('''INSERT INTO plantations (date_planted, crop_name, hectares, plot_name, expected_harvest, notes)
-            VALUES (?, ?, ?, ?, ?, ?)''', (dt, crop, hectares, plot, expected_harvest, notes))
-        conn.commit()
-        conn.close()
+        try:
+            dt = datetime.now().strftime("%Y-%m-%d")
+            plantation_data = {
+                'date_planted': dt,
+                'crop_name': crop,
+                'hectares': hectares,
+                'plot_name': plot,
+                'expected_harvest': expected_harvest,
+                'notes': notes,
+                'status': 'En cours'
+            }
+            supabase.table('plantations').insert(plantation_data).execute()
+        except Exception as e:
+            st.error(f"Error adding plantation: {e}")
     
     @staticmethod
     def get_expenses():
-        conn = sqlite3.connect(DB_NAME)
-        df = pd.read_sql_query("SELECT * FROM expenses ORDER BY date DESC", conn)
-        conn.close()
-        return df
+        try:
+            response = supabase.table('expenses').select('*').order('date', desc=True).execute()
+            if response.data:
+                return pd.DataFrame(response.data)
+            return pd.DataFrame()
+        except Exception as e:
+            st.error(f"Error fetching expenses: {e}")
+            return pd.DataFrame()
     
     @staticmethod
     def add_expense(category, description, amount, payment_method=None, notes=None):
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        c.execute('''INSERT INTO expenses (date, category, description, amount, payment_method, notes)
-            VALUES (?, ?, ?, ?, ?, ?)''', (dt, category, description, amount, payment_method, notes))
-        conn.commit()
-        conn.close()
+        try:
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            expense_data = {
+                'date': dt,
+                'category': category,
+                'description': description,
+                'amount': amount,
+                'payment_method': payment_method,
+                'notes': notes
+            }
+            supabase.table('expenses').insert(expense_data).execute()
+        except Exception as e:
+            st.error(f"Error adding expense: {e}")
     
     @staticmethod
     def get_dashboard_stats(period_days=30):
-        conn = sqlite3.connect(DB_NAME)
-        date_threshold = (datetime.now() - timedelta(days=period_days)).strftime("%Y-%m-%d")
-        prev_date = (datetime.now() - timedelta(days=period_days*2)).strftime("%Y-%m-%d")
-        
-        stats = {}
-        stats['total_sales'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(total_price), 0) as total FROM transactions WHERE type='Vente' AND date >= ?",
-            conn, params=[date_threshold])['total'][0]
-        stats['total_purchases'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(total_price), 0) as total FROM transactions WHERE type='Achat' AND date >= ?",
-            conn, params=[date_threshold])['total'][0]
-        stats['total_expenses'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date >= ?",
-            conn, params=[date_threshold])['total'][0]
-        stats['total_fuel'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(fuel_liters), 0) as total FROM transactions WHERE category LIKE '%Mazot%' AND date >= ?",
-            conn, params=[date_threshold])['total'][0]
-        stats['outstanding'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(amount_remaining), 0) as total FROM transactions WHERE amount_remaining > 0", conn)['total'][0]
-        stats['prev_sales'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(total_price), 0) as total FROM transactions WHERE type='Vente' AND date >= ? AND date < ?",
-            conn, params=[prev_date, date_threshold])['total'][0]
-        stats['prev_purchases'] = pd.read_sql_query(
-            "SELECT COALESCE(SUM(total_price), 0) as total FROM transactions WHERE type='Achat' AND date >= ? AND date < ?",
-            conn, params=[prev_date, date_threshold])['total'][0]
-        
-        conn.close()
-        return stats
+        try:
+            date_threshold = (datetime.now() - timedelta(days=period_days)).strftime("%Y-%m-%d")
+            prev_date = (datetime.now() - timedelta(days=period_days*2)).strftime("%Y-%m-%d")
+            
+            stats = {}
+            
+            # Total sales
+            sales_response = supabase.table('transactions').select('total_price').eq('type', 'Vente').gte('date', date_threshold).execute()
+            stats['total_sales'] = sum([item['total_price'] for item in sales_response.data]) if sales_response.data else 0
+            
+            # Total purchases
+            purchases_response = supabase.table('transactions').select('total_price').eq('type', 'Achat').gte('date', date_threshold).execute()
+            stats['total_purchases'] = sum([item['total_price'] for item in purchases_response.data]) if purchases_response.data else 0
+            
+            # Total expenses
+            expenses_response = supabase.table('expenses').select('amount').gte('date', date_threshold).execute()
+            stats['total_expenses'] = sum([item['amount'] for item in expenses_response.data]) if expenses_response.data else 0
+            
+            # Total fuel
+            fuel_response = supabase.table('transactions').select('fuel_liters').like('category', '%Mazot%').gte('date', date_threshold).execute()
+            stats['total_fuel'] = sum([item['fuel_liters'] for item in fuel_response.data]) if fuel_response.data else 0
+            
+            # Outstanding
+            outstanding_response = supabase.table('transactions').select('amount_remaining').gt('amount_remaining', 0).execute()
+            stats['outstanding'] = sum([item['amount_remaining'] for item in outstanding_response.data]) if outstanding_response.data else 0
+            
+            # Previous sales
+            prev_sales_response = supabase.table('transactions').select('total_price').eq('type', 'Vente').gte('date', prev_date).lt('date', date_threshold).execute()
+            stats['prev_sales'] = sum([item['total_price'] for item in prev_sales_response.data]) if prev_sales_response.data else 0
+            
+            # Previous purchases
+            prev_purchases_response = supabase.table('transactions').select('total_price').eq('type', 'Achat').gte('date', prev_date).lt('date', date_threshold).execute()
+            stats['prev_purchases'] = sum([item['total_price'] for item in prev_purchases_response.data]) if prev_purchases_response.data else 0
+            
+            return stats
+        except Exception as e:
+            st.error(f"Error fetching dashboard stats: {e}")
+            return {
+                'total_sales': 0, 'total_purchases': 0, 'total_expenses': 0,
+                'total_fuel': 0, 'outstanding': 0, 'prev_sales': 0, 'prev_purchases': 0
+            }
 
 db = DB()
 
