@@ -924,29 +924,34 @@ if menu == "Dashboard":
         st.markdown("</div>", unsafe_allow_html=True)
     
     with col_balance:
-        # Create balance card using Streamlit components with custom styling
-        balance_html = f"""
-        <div class='balance-card'>
-            <div class='balance-title'>Active Balance</div>
-            <div class='balance-amount'>$ {format_currency(net_profit)}</div>
-            
-            <div class='balance-item'>
-                <span>💰 Incomes</span>
-                <span>$ {format_currency(stats['total_sales'])}</span>
-            </div>
-            <div class='balance-item'>
-                <span>💸 Expenses</span>
-                <span>$ -{format_currency(stats['total_purchases'])}</span>
-            </div>
-            <div class='balance-item'>
-                <span>📊 Taxes</span>
-                <span>$ -{format_currency(stats['total_expenses'])}</span>
-            </div>
-            
-            <button class='balance-btn'>Add Virtual Card ▶</button>
-        </div>
-        """
-        st.markdown(balance_html, unsafe_allow_html=True)
+        # Format values first
+        balance_value = format_currency(net_profit)
+        incomes_value = format_currency(stats['total_sales'])
+        expenses_value = format_currency(stats['total_purchases'])
+        taxes_value = format_currency(stats['total_expenses'])
+        
+        # Create balance card HTML
+        st.markdown(f"""
+<div class='balance-card'>
+    <div class='balance-title'>Active Balance</div>
+    <div class='balance-amount'>$ {balance_value}</div>
+    
+    <div class='balance-item'>
+        <span>💰 Incomes</span>
+        <span>$ {incomes_value}</span>
+    </div>
+    <div class='balance-item'>
+        <span>💸 Expenses</span>
+        <span>$ -{expenses_value}</span>
+    </div>
+    <div class='balance-item'>
+        <span>📊 Taxes</span>
+        <span>$ -{taxes_value}</span>
+    </div>
+    
+    <button class='balance-btn'>Add Virtual Card ▶</button>
+</div>
+        """, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -980,32 +985,32 @@ if menu == "Dashboard":
         st.markdown("</div>", unsafe_allow_html=True)
     
     with col_payments:
-        st.markdown("""
-            <div class='payments-card'>
-                <div class='payments-title'>Upcoming Payments</div>
-                <div class='payment-item'>
-                    <div style='display: flex; align-items: center;'>
-                        <div class='payment-dot' style='background: #5CC97B;'></div>
-                        <span class='payment-name'>Easy Pay Way.</span>
-                    </div>
-                    <span class='payment-amount'>$82258.23</span>
-                </div>
-                <div class='payment-item'>
-                    <div style='display: flex; align-items: center;'>
-                        <div class='payment-dot' style='background: #FFC107;'></div>
-                        <span class='payment-name'>Payonner.</span>
-                    </div>
-                    <span class='payment-amount'>$64486.69</span>
-                </div>
-                <div class='payment-item'>
-                    <div style='display: flex; align-items: center;'>
-                        <div class='payment-dot' style='background: #FF7558;'></div>
-                        <span class='payment-name'>FastSpring.</span>
-                    </div>
-                    <span class='payment-amount'>$4210.38</span>
-                </div>
-                <button class='balance-btn' style='margin-top: 1rem; background: #F9FAFB; color: #374151;'>More</button>
-            </div>
+        st.markdown(f"""
+<div class='payments-card'>
+    <div class='payments-title'>Upcoming Payments</div>
+    <div class='payment-item'>
+        <div style='display: flex; align-items: center;'>
+            <div class='payment-dot' style='background: #5CC97B;'></div>
+            <span class='payment-name'>Easy Pay Way.</span>
+        </div>
+        <span class='payment-amount'>$82258.23</span>
+    </div>
+    <div class='payment-item'>
+        <div style='display: flex; align-items: center;'>
+            <div class='payment-dot' style='background: #FFC107;'></div>
+            <span class='payment-name'>Payonner.</span>
+        </div>
+        <span class='payment-amount'>$64486.69</span>
+    </div>
+    <div class='payment-item'>
+        <div style='display: flex; align-items: center;'>
+            <div class='payment-dot' style='background: #FF7558;'></div>
+            <span class='payment-name'>FastSpring.</span>
+        </div>
+        <span class='payment-amount'>$4210.38</span>
+    </div>
+    <button class='balance-btn' style='margin-top: 1rem; background: #F9FAFB; color: #374151;'>More</button>
+</div>
         """, unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
