@@ -924,27 +924,29 @@ if menu == "Dashboard":
         st.markdown("</div>", unsafe_allow_html=True)
     
     with col_balance:
-        st.markdown(f"""
-            <div class='balance-card'>
-                <div class='balance-title'>Active Balance</div>
-                <div class='balance-amount'>$ {format_currency(net_profit)}</div>
-                
-                <div class='balance-item'>
-                    <span>💰 Incomes</span>
-                    <span>$ {format_currency(stats['total_sales'])}</span>
-                </div>
-                <div class='balance-item'>
-                    <span>💸 Expenses</span>
-                    <span>$ -{format_currency(stats['total_purchases'])}</span>
-                </div>
-                <div class='balance-item'>
-                    <span>📊 Taxes</span>
-                    <span>$ -{format_currency(stats['total_expenses'])}</span>
-                </div>
-                
-                <button class='balance-btn'>Add Virtual Card ▶</button>
+        # Create balance card using Streamlit components with custom styling
+        balance_html = f"""
+        <div class='balance-card'>
+            <div class='balance-title'>Active Balance</div>
+            <div class='balance-amount'>$ {format_currency(net_profit)}</div>
+            
+            <div class='balance-item'>
+                <span>💰 Incomes</span>
+                <span>$ {format_currency(stats['total_sales'])}</span>
             </div>
-        """, unsafe_allow_html=True)
+            <div class='balance-item'>
+                <span>💸 Expenses</span>
+                <span>$ -{format_currency(stats['total_purchases'])}</span>
+            </div>
+            <div class='balance-item'>
+                <span>📊 Taxes</span>
+                <span>$ -{format_currency(stats['total_expenses'])}</span>
+            </div>
+            
+            <button class='balance-btn'>Add Virtual Card ▶</button>
+        </div>
+        """
+        st.markdown(balance_html, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
