@@ -534,7 +534,7 @@ class DB:
             
             stats = {}
             
-            # Total sales
+            # Total sales (Revenue)
             sales_response = supabase.table('transactions')\
                 .select('total_price')\
                 .eq('farm_id', farm_id)\
@@ -559,15 +559,6 @@ class DB:
                 .gte('date', date_threshold)\
                 .execute()
             stats['total_expenses'] = sum([item['amount'] for item in expenses_response.data]) if expenses_response.data else 0
-            
-            # Total fuel
-            fuel_response = supabase.table('transactions')\
-                .select('fuel_liters')\
-                .eq('farm_id', farm_id)\
-                .like('category', '%Mazot%')\
-                .gte('date', date_threshold)\
-                .execute()
-            stats['total_fuel'] = sum([item['fuel_liters'] for item in fuel_response.data]) if fuel_response.data else 0
             
             # Outstanding payments
             outstanding_response = supabase.table('transactions')\
@@ -597,29 +588,29 @@ class DB:
                 .execute()
             stats['prev_purchases'] = sum([item['total_price'] for item in prev_purchases_response.data]) if prev_purchases_response.data else 0
             
-            # Count workers
+            # Active workers count
             workers_response = supabase.table('workers')\
                 .select('id', count='exact')\
                 .eq('farm_id', farm_id)\
                 .eq('status', 'active')\
                 .execute()
-            stats['total_workers'] = workers_response.count if workers_response.count else 0
+            stats['active_workers'] = workers_response.count if workers_response.count else 0
             
-            # Count products (unique products from transactions)
-            products_response = supabase.table('transactions')\
-                .select('product')\
+            # Total stock items (unique products from plantations)
+            plantations_response = supabase.table('plantations')\
+                .select('crop_name')\
                 .eq('farm_id', farm_id)\
+                .eq('status', 'En cours')\
                 .execute()
-            unique_products = set([item['product'] for item in products_response.data]) if products_response.data else set()
-            stats['total_products'] = len(unique_products)
+            stats['stock_items'] = len(plantations_response.data) if plantations_response.data else 0
             
             return stats
         except Exception as e:
             st.error(f"Error fetching dashboard stats: {e}")
             return {
                 'total_sales': 0, 'total_purchases': 0, 'total_expenses': 0,
-                'total_fuel': 0, 'outstanding': 0, 'prev_sales': 0, 
-                'prev_purchases': 0, 'total_workers': 0, 'total_products': 0
+                'outstanding': 0, 'prev_sales': 0, 'prev_purchases': 0, 
+                'active_workers': 0, 'stock_items': 0
             }
 
 db = DB()
@@ -821,7 +812,7 @@ if menu == "Dashboard":
         st.markdown(f"""
             <div class='metric-card'>
                 <div class='metric-icon orange'>📈</div>
-                <div class='metric-label'>Total Sales</div>
+                <div class='metric-label'>Total Revenue</div>
                 <div class='metric-value'>${format_currency(stats['total_sales'])}</div>
                 <div class='metric-change {change_class}'>{change_icon} {abs(sales_change):.1f}% Incomes</div>
             </div>
@@ -832,7 +823,7 @@ if menu == "Dashboard":
         st.markdown(f"""
             <div class='metric-card'>
                 <div class='metric-icon blue'>🎯</div>
-                <div class='metric-label'>Daily Sales</div>
+                <div class='metric-label'>Daily Revenue</div>
                 <div class='metric-value'>${format_currency(daily_sales)}</div>
                 <div class='metric-change down'>↓ 13% Sales</div>
             </div>
@@ -842,9 +833,9 @@ if menu == "Dashboard":
         st.markdown(f"""
             <div class='metric-card'>
                 <div class='metric-icon green'>👥</div>
-                <div class='metric-label'>Daily User</div>
-                <div class='metric-value'>{stats['total_workers']}</div>
-                <div class='metric-change up'>↑ 48% New User</div>
+                <div class='metric-label'>Workers Present</div>
+                <div class='metric-value'>{stats['active_workers']}</div>
+                <div class='metric-change up'>↑ 48% Ouvriers</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -852,9 +843,9 @@ if menu == "Dashboard":
         st.markdown(f"""
             <div class='metric-card'>
                 <div class='metric-icon purple'>📦</div>
-                <div class='metric-label'>Product</div>
-                <div class='metric-value'>{stats['total_products']}</div>
-                <div class='metric-change up'>↑ 25% New Product</div>
+                <div class='metric-label'>Stock Items</div>
+                <div class='metric-value'>{stats['stock_items']}</div>
+                <div class='metric-change up'>↑ 25% Active Crops</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -1189,4 +1180,3 @@ st.markdown("""
         Agricultural ERP © 2024 | Multi-Tenant SaaS Platform | Powered by Supabase
     </div>
 """, unsafe_allow_html=True)
-
